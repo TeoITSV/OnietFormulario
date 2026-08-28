@@ -8,6 +8,7 @@ arme la delegación viendo la demanda real por competencia.
 ```
 public/index.html   toda la interfaz (alumno + panel de coordinación)
 api/estado.js       PÚBLICO   config + cuántos se anotaron en cada competencia
+api/grupos.js       PÚBLICO   competencias por equipo: nombre y curso de anotados
 api/postular.js     PÚBLICO   alta / actualización de una postulación
 api/login.js        PÚBLICO   valida la contraseña y abre la sesión
 api/postulaciones.js PROTEGIDO listado completo, cambio de estado, baja
@@ -27,8 +28,10 @@ ninguna credencial.
 
 Lo importante es que la protección no está en esconder el panel, sino en que
 `/api/postulaciones` y `/api/config` rechazan con 401 cualquier pedido sin
-cookie válida. El endpoint público sólo devuelve conteos: cuántos se anotaron
-en cada competencia, nunca quiénes.
+cookie válida. Los endpoints públicos sólo devuelven lo mínimo: `/api/estado`
+da conteos (cuántos se anotaron en cada competencia) y `/api/grupos` da,
+sólo para las competencias por equipo, nombre y curso de quienes ya se
+anotaron (para que puedan armar el equipo) — nunca mail ni teléfono.
 
 ## Puesta en marcha
 

@@ -22,6 +22,7 @@ export default async function handler(req, res) {
       cat: String(c.cat || '').slice(0, 10),
       cupo: Math.max(0, Math.min(99, Number(c.cupo) || 0)),
       modalidad: c.modalidad === 'individual' ? 'individual' : 'equipo',
+      integrantes: Math.max(1, Math.min(20, Number(c.integrantes) || 1)),
       activa: c.activa !== false,
       web: /^https?:\/\//i.test(c.web || '') ? String(c.web).slice(0, 300) : '',
       pdf: /^https?:\/\//i.test(c.pdf || '') ? String(c.pdf).slice(0, 300) : ''

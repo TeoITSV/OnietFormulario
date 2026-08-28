@@ -6,11 +6,22 @@ create table if not exists postulacion (
   curso       text not null,
   email       text not null unique,
   tel         text,
-  modalidad   text,
+  especialidad text,
   experiencia text,
   estado      text not null default 'postulado',
   creado      timestamptz not null default now()
 );
+
+-- si la tabla ya existía con la columna vieja "modalidad" (todos iban del
+-- ITS Villada de la misma forma), la renombramos: ahora el alumno carga
+-- su especialidad (Electromecánica / Programación / Electrónica / Primer Ciclo).
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_name = 'postulacion' and column_name = 'modalidad')
+     and not exists (select 1 from information_schema.columns where table_name = 'postulacion' and column_name = 'especialidad') then
+    alter table postulacion rename column modalidad to especialidad;
+  end if;
+end $$;
 
 create table if not exists postulacion_competencia (
   postulacion_id bigint not null references postulacion(id) on delete cascade,

@@ -1,6 +1,7 @@
 import { sql, config, conteos } from './_lib.js';
 
 const MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const ESPECIALIDADES = ['electromecanica', 'programacion', 'electronica', 'primer-ciclo'];
 
 /* Público, pero validado del lado del servidor: el frontend no es de fiar.
    Volver a postularse con el mismo mail reemplaza la postulación anterior. */
@@ -12,12 +13,15 @@ export default async function handler(req, res) {
   const curso = String(b.curso || '').trim().slice(0, 40);
   const email = String(b.email || '').trim().toLowerCase().slice(0, 160);
   const tel = String(b.tel || '').trim().slice(0, 40);
-  const modalidad = ['presencial', 'online', 'indistinto'].includes(b.modalidad) ? b.modalidad : 'indistinto';
+  const especialidad = ESPECIALIDADES.includes(b.especialidad) ? b.especialidad : '';
   const exp = String(b.exp || '').trim().slice(0, 500);
   const prefs = Array.isArray(b.prefs) ? b.prefs.map(String) : [];
 
   if (nombre.length < 3 || !curso || !MAIL.test(email)) {
     return res.status(400).json({ error: 'Completá nombre, curso y un mail válido.' });
+  }
+  if (!especialidad) {
+    return res.status(400).json({ error: 'Elegí tu especialidad.' });
   }
   if (!prefs.length) return res.status(400).json({ error: 'Elegí al menos una competencia.' });
 
@@ -41,11 +45,11 @@ export default async function handler(req, res) {
     const actualizado = previas.length > 0;
 
     const filas = await sql`
-      insert into postulacion (nombre, curso, email, tel, modalidad, experiencia)
-      values (${nombre}, ${curso}, ${email}, ${tel}, ${modalidad}, ${exp})
+      insert into postulacion (nombre, curso, email, tel, especialidad, experiencia)
+      values (${nombre}, ${curso}, ${email}, ${tel}, ${especialidad}, ${exp})
       on conflict (email) do update set
         nombre = excluded.nombre, curso = excluded.curso, tel = excluded.tel,
-        modalidad = excluded.modalidad, experiencia = excluded.experiencia,
+        especialidad = excluded.especialidad, experiencia = excluded.experiencia,
         creado = now()
       returning id`;
     const id = filas[0].id;

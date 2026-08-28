@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const filas = await sql`
-        select p.id, p.nombre, p.curso, p.email, p.tel, p.modalidad,
+        select p.id, p.nombre, p.curso, p.email, p.tel, p.especialidad,
                p.experiencia, p.estado, p.creado,
                coalesce(
                  array_agg(pc.competencia order by pc.orden)
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         postulaciones: filas.map(f => ({
           id: f.id, nombre: f.nombre, curso: f.curso, email: f.email,
-          tel: f.tel, modalidad: f.modalidad, exp: f.experiencia,
+          tel: f.tel, especialidad: f.especialidad, exp: f.experiencia,
           estado: f.estado, ts: f.creado, prefs: f.prefs
         }))
       });
