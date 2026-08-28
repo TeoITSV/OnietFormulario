@@ -16,17 +16,21 @@ export default async function handler(req, res) {
     cierre: String(cfg.cierre || '').slice(0, 40),
     abierta: cfg.abierta !== false,
     maxPref: Math.max(0, Math.min(33, Number(cfg.maxPref) || 0)),
-    comps: cfg.comps.slice(0, 100).map(c => ({
-      id: String(c.id).slice(0, 60),
-      n: String(c.n || '').slice(0, 120),
-      cat: String(c.cat || '').slice(0, 10),
-      cupo: Math.max(0, Math.min(99, Number(c.cupo) || 0)),
-      modalidad: c.modalidad === 'individual' ? 'individual' : 'equipo',
-      integrantes: Math.max(1, Math.min(20, Number(c.integrantes) || 1)),
-      activa: c.activa !== false,
-      web: /^https?:\/\//i.test(c.web || '') ? String(c.web).slice(0, 300) : '',
-      pdf: /^https?:\/\//i.test(c.pdf || '') ? String(c.pdf).slice(0, 300) : ''
-    }))
+    comps: cfg.comps.slice(0, 100).map(c => {
+      const modalidad = c.modalidad === 'individual' ? 'individual' : 'equipo';
+      return {
+        id: String(c.id).slice(0, 60),
+        n: String(c.n || '').slice(0, 120),
+        cat: String(c.cat || '').slice(0, 10),
+        cupo: Math.max(0, Math.min(99, Number(c.cupo) || 0)),
+        modalidad,
+        /* individual = 1 integrante siempre, no lo decide el cliente */
+        integrantes: modalidad === 'individual' ? 1 : Math.max(1, Math.min(20, Number(c.integrantes) || 1)),
+        activa: c.activa !== false,
+        web: /^https?:\/\//i.test(c.web || '') ? String(c.web).slice(0, 300) : '',
+        pdf: /^https?:\/\//i.test(c.pdf || '') ? String(c.pdf).slice(0, 300) : ''
+      };
+    })
   };
 
   try {
