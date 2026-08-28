@@ -42,7 +42,34 @@ export default async function handler(req, res) {
     }
 
     const previas = await sql`select id from postulacion where email = ${email}`;
+    const idPrevio = previas.length > 0 ? previas[0].id : null;
     const actualizado = previas.length > 0;
+
+    /* para las competencias por equipo, el alumno elige a qué grupo se
+       suma (Grupo 1, Grupo 2...); validamos cupo de grupos y que ese
+       grupo puntual no esté ya completo según los integrantes cargados */
+    const compMap = new Map((cfg?.comps || []).map(c => [c.id, c]));
+    const gruposSel = (b.grupos && typeof b.grupos === 'object') ? b.grupos : {};
+    const grupoPorCompetencia = {};
+    for (const compId of elegidas) {
+      const c = compMap.get(compId);
+      if (!c || c.modalidad !== 'equipo') continue;
+      const cupoGrupos = Number(c.cupo) || 0;
+      if (cupoGrupos <= 0) continue;
+      const integrantes = Math.max(1, Number(c.integrantes) || 1);
+      const grupo = Number(gruposSel[compId]);
+      if (!Number.isInteger(grupo) || grupo < 1 || grupo > cupoGrupos) {
+        return res.status(400).json({ error: `Elegí un grupo válido para "${c.n}".` });
+      }
+      const ocupado = await sql`
+        select count(*)::int as n from postulacion_competencia
+        where competencia = ${compId} and grupo = ${grupo}
+          and postulacion_id is distinct from ${idPrevio}`;
+      if (ocupado[0].n >= integrantes) {
+        return res.status(400).json({ error: `El grupo ${grupo} de "${c.n}" ya está completo.` });
+      }
+      grupoPorCompetencia[compId] = grupo;
+    }
 
     const filas = await sql`
       insert into postulacion (nombre, curso, email, tel, especialidad, experiencia)
@@ -57,8 +84,8 @@ export default async function handler(req, res) {
     await sql`delete from postulacion_competencia where postulacion_id = ${id}`;
     for (let i = 0; i < elegidas.length; i++) {
       await sql`
-        insert into postulacion_competencia (postulacion_id, competencia, orden)
-        values (${id}, ${elegidas[i]}, ${i + 1})`;
+        insert into postulacion_competencia (postulacion_id, competencia, orden, grupo)
+        values (${id}, ${elegidas[i]}, ${i + 1}, ${grupoPorCompetencia[elegidas[i]] ?? null})`;
     }
 
     return res.status(200).json({ ok: true, actualizado, conteos: await conteos() });

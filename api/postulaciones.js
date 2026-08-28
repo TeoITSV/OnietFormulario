@@ -14,7 +14,10 @@ export default async function handler(req, res) {
                p.experiencia, p.estado, p.creado,
                coalesce(
                  array_agg(pc.competencia order by pc.orden)
-                 filter (where pc.competencia is not null), '{}') as prefs
+                 filter (where pc.competencia is not null), '{}') as prefs,
+               coalesce(
+                 array_agg(pc.grupo order by pc.orden)
+                 filter (where pc.competencia is not null), '{}') as grupos
         from postulacion p
         left join postulacion_competencia pc on pc.postulacion_id = p.id
         group by p.id
@@ -24,7 +27,7 @@ export default async function handler(req, res) {
         postulaciones: filas.map(f => ({
           id: f.id, nombre: f.nombre, curso: f.curso, email: f.email,
           tel: f.tel, especialidad: f.especialidad, exp: f.experiencia,
-          estado: f.estado, ts: f.creado, prefs: f.prefs
+          estado: f.estado, ts: f.creado, prefs: f.prefs, grupos: f.grupos
         }))
       });
     }

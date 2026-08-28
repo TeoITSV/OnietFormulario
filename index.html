@@ -319,6 +319,12 @@ function cupoAlumnos(c){
   if(c.modalidad!=='equipo') return cupo;
   return cupo * Math.max(1, c.integrantes|0 || 1);
 }
+/* cuántos ya se anotaron en cada número de grupo (1..cupo) de una competencia por equipo */
+function ocupacionGrupos(compId){
+  var ocupados = {};
+  (GRUPOS[compId] || []).forEach(function(g){ if(g.grupo) ocupados[g.grupo] = (ocupados[g.grupo]||0) + 1; });
+  return ocupados;
+}
 function primeraOpcion(id){
   return INSC.filter(function(r){ return (r.prefs||[])[0] === id; }).length;
 }
@@ -376,10 +382,22 @@ function renderGrid(){
       grupoHtml = '<button type="button" class="reg togglegrupo" data-id="'+c.id+'" style="border:0;background:none;padding:0;cursor:pointer">'
         + (abierto ? 'Ocultar anotados' : 'Ver quiénes ya se anotaron') + ' ('+lista.length+')</button>';
       if(abierto){
-        grupoHtml += '<div class="grupolist" style="font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--ink);border:1px solid var(--line);border-radius:7px;padding:8px 10px;max-height:140px;overflow-y:auto">'
-          + (lista.length
-              ? lista.map(function(g){ return esc(g.nombre)+' — '+esc(g.curso); }).join('<br>')
-              : 'Todavía no se anotó nadie.')
+        var porGrupo = {};
+        lista.forEach(function(g){
+          var k = g.grupo || '_';
+          if(!porGrupo[k]) porGrupo[k] = [];
+          porGrupo[k].push(g);
+        });
+        var claves = Object.keys(porGrupo).sort(function(a,b){
+          if(a==='_') return 1; if(b==='_') return -1; return Number(a)-Number(b);
+        });
+        var bloques = claves.map(function(k){
+          var titulo = k==='_' ? 'Sin grupo asignado' : 'Grupo '+k;
+          var integrantesTxt = porGrupo[k].map(function(g){ return esc(g.nombre)+' — '+esc(g.curso); }).join('<br>');
+          return '<div style="margin-bottom:6px"><b style="color:var(--text)">'+esc(titulo)+'</b><br>'+integrantesTxt+'</div>';
+        }).join('');
+        grupoHtml += '<div class="grupolist" style="font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--ink);border:1px solid var(--line);border-radius:7px;padding:8px 10px;max-height:160px;overflow-y:auto">'
+          + (lista.length ? bloques : 'Todavía no se anotó nadie.')
           + '</div>';
       }
     }
@@ -434,6 +452,26 @@ function renderTray(){
 function openForm(){
   var m = document.createElement('div');
   m.className='modal';
+  var equipoPicks = picks.filter(function(id){ var c=compById(id); return c && c.modalidad==='equipo' && (c.cupo|0)>0; });
+  var gruposHtml = '';
+  if(equipoPicks.length){
+    gruposHtml = '<label style="margin-top:18px">Elegí tu grupo en cada competencia por equipo</label>';
+    gruposHtml += equipoPicks.map(function(id){
+      var c = compById(id);
+      var cupoG = Math.max(0, c.cupo|0);
+      var integ = Math.max(1, c.integrantes|0 || 1);
+      var ocupados = ocupacionGrupos(id);
+      var opciones = '';
+      for(var g=1; g<=cupoG; g++){
+        var n = ocupados[g]||0;
+        var lleno = n >= integ;
+        opciones += '<button type="button" class="chip gpick" data-comp="'+id+'" data-grupo="'+g+'" aria-pressed="false"'
+          + (lleno ? ' disabled style="opacity:.4;cursor:not-allowed"' : '') + '>Grupo '+g+' ('+n+'/'+integ+')</button>';
+      }
+      return '<div style="margin:6px 0 10px"><div style="font-size:13px;font-weight:600;margin-bottom:6px">'+esc(c.n)+'</div>'
+        + '<div class="filters" style="margin:0">'+opciones+'</div></div>';
+    }).join('');
+  }
   m.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">'
     + '<h2>Confirmá tu postulación</h2>'
     + '<p class="hint">Estos datos los usa la coordinación para armar la delegación y para la inscripción oficial en la plataforma de la UBP.</p>'
@@ -445,6 +483,7 @@ function openForm(){
           + '</div>';
       }).join('') + '</div>'
     + '<p class="hint" style="margin:10px 0 0">Leé el reglamento de cada una antes de confirmar: algunas piden equipo armado y otras son individuales.</p>'
+    + gruposHtml
     + '<div class="row"><div><label for="fNom">Nombre y apellido</label><input id="fNom" autocomplete="name"></div></div>'
     + '<div class="row"><div><label for="fCurso">Curso y división</label><input id="fCurso" placeholder="6º A"></div>'
     + '<div><label for="fEsp">Especialidad</label><select id="fEsp">'
@@ -459,12 +498,30 @@ function openForm(){
   document.body.appendChild(m);
   m.querySelector('#fNo').onclick = function(){ m.remove(); };
   m.onclick = function(e){ if(e.target===m) m.remove(); };
+  Array.prototype.forEach.call(m.querySelectorAll('.gpick'), function(b){
+    b.onclick = function(){
+      if(b.disabled) return;
+      var comp = b.dataset.comp;
+      Array.prototype.forEach.call(m.querySelectorAll('.gpick[data-comp="'+comp+'"]'), function(x){ x.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+    };
+  });
   m.querySelector('#fOk').onclick = function(){
     var nom = m.querySelector('#fNom').value.trim();
     var curso = m.querySelector('#fCurso').value.trim();
     var mail = m.querySelector('#fMail').value.trim();
     if(nom.length<3 || !curso || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){
       m.querySelector('#fErr').textContent = 'Completá nombre, curso y un mail válido.'; return;
+    }
+    var grupos = {};
+    for(var gi=0; gi<equipoPicks.length; gi++){
+      var compId = equipoPicks[gi];
+      var sel = m.querySelector('.gpick[data-comp="'+compId+'"][aria-pressed="true"]');
+      if(!sel){
+        var nomComp = compById(compId); nomComp = nomComp ? nomComp.n : compId;
+        m.querySelector('#fErr').textContent = 'Elegí un grupo para "'+nomComp+'".'; return;
+      }
+      grupos[compId] = Number(sel.dataset.grupo);
     }
     var btn = m.querySelector('#fOk'); btn.disabled = true; btn.textContent = 'Enviando…';
     var rec = {
@@ -475,6 +532,7 @@ function openForm(){
       especialidad: m.querySelector('#fEsp').value,
       exp: m.querySelector('#fExp').value.trim().slice(0,500),
       prefs: picks.slice(),
+      grupos: grupos,
       estado: 'postulado'
     };
     api('postular', {method:'POST', body:rec}).then(function(r){
@@ -497,14 +555,14 @@ function renderAdmin(){
   if(!adminOk){
     v.innerHTML = '<div class="section-h"><h2>Panel de coordinación</h2></div>'
       + '<p class="sub">Ingresá la contraseña para ver las postulaciones y configurar los cupos.</p>'
-      + '<div class="row" style="max-width:360px;margin-top:12px"><input id="pinIn" type="password" placeholder="Contraseña"><button class="btn ghost" id="pinBtn" style="flex:0 0 auto">Entrar</button></div>'
-      + '<div class="note">La contraseña evita que un alumno abra el panel por curiosidad, no es seguridad real. Podés cambiarla desde Configuración. No cargues acá datos sensibles (DNI, domicilios): pedilos aparte, sólo a los seleccionados.</div>';
+      + '<div class="row" style="max-width:360px;margin-top:12px"><input id="pinIn" type="password" placeholder="Contraseña"><button class="btn ghost" id="pinBtn" style="flex:0 0 auto">Entrar</button></div>';
     $('#pinBtn').onclick = function(){
       var b = $('#pinBtn'); b.disabled = true; b.textContent = 'Entrando…';
       api('login', {method:'POST', body:{password: $('#pinIn').value}}).then(function(r){
         b.disabled = false; b.textContent = 'Entrar';
-        if(r.ok){ adminOk = true; refresh().then(renderAdmin); }
-        else toast('Contraseña incorrecta');
+        if(!r.ok){ toast('Contraseña incorrecta'); return; }
+        adminOk = true;
+        return refresh().then(renderAdmin).catch(function(){ toast('No se pudo cargar el panel'); });
       }).catch(function(){ b.disabled=false; b.textContent='Entrar'; toast('No se pudo verificar'); });
     };
     $('#pinIn').onkeydown = function(e){ if(e.key==='Enter') $('#pinBtn').click(); };
@@ -526,7 +584,11 @@ function renderAdmin(){
   } else {
     html += '<div class="tbl-wrap"><table><thead><tr><th>Alumno</th><th>Curso</th><th>Competencias elegidas (en orden de preferencia)</th><th>Especialidad</th><th>Contacto</th><th>Estado</th><th></th></tr></thead><tbody>';
     INSC.slice().sort(function(a,b){ return a.ts<b.ts?-1:1; }).forEach(function(r){
-      var prefs = (r.prefs||[]).map(function(id,i){ var c=compById(id); return '<span style="white-space:nowrap"><span style="color:var(--muted);font-family:var(--mono);font-size:11px">'+(i+1)+'.</span> '+esc(c?c.n:id)+'</span>'; }).join(' · ');
+      var prefs = (r.prefs||[]).map(function(id,i){
+        var c = compById(id);
+        var g = (r.grupos||[])[i];
+        return '<span style="white-space:nowrap"><span style="color:var(--muted);font-family:var(--mono);font-size:11px">'+(i+1)+'.</span> '+esc(c?c.n:id)+(g?' <span style="color:var(--muted)">(Grupo '+g+')</span>':'')+'</span>';
+      }).join(' · ');
       prefs = '<div style="min-width:240px">'+prefs+'</div>';
       html += '<tr><td><b>'+esc(r.nombre)+'</b>'+(r.exp?'<div style="color:var(--muted);font-size:12px;margin-top:3px">'+esc(r.exp)+'</div>':'')+'</td>'
         + '<td>'+esc(r.curso)+'</td><td>'+prefs+'</td><td>'+esc(ESPECIALIDADES[r.especialidad]||r.especialidad||'')+'</td>'
@@ -632,13 +694,14 @@ function exportCsv(){
 
 /* una fila por alumno-competencia: es el formato que sirve para armar cada equipo */
 function exportCsvPorCompetencia(){
-  var cols = ['competencia','categoria','orden_de_preferencia','alumno','curso','email','tel','especialidad','estado'];
+  var cols = ['competencia','categoria','grupo','orden_de_preferencia','alumno','curso','email','tel','especialidad','estado'];
   var rows = [];
   CFG.comps.forEach(function(c){
     INSC.forEach(function(r){
       var i = (r.prefs||[]).indexOf(c.id);
       if(i < 0) return;
-      rows.push([c.n, CATS[c.cat]?CATS[c.cat].n:c.cat, i+1, r.nombre, r.curso, r.email, r.tel||'', ESPECIALIDADES[r.especialidad]||r.especialidad||'', r.estado||'']);
+      var g = (r.grupos||[])[i];
+      rows.push([c.n, CATS[c.cat]?CATS[c.cat].n:c.cat, g||'', i+1, r.nombre, r.curso, r.email, r.tel||'', ESPECIALIDADES[r.especialidad]||r.especialidad||'', r.estado||'']);
     });
   });
   var csv = [cols].concat(rows).map(function(row){

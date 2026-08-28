@@ -27,8 +27,13 @@ create table if not exists postulacion_competencia (
   postulacion_id bigint not null references postulacion(id) on delete cascade,
   competencia    text   not null,
   orden          int    not null,
+  grupo          int,
   primary key (postulacion_id, competencia)
 );
+
+-- si la tabla ya existía sin la columna "grupo" (grupo 1, 2... dentro de
+-- una competencia por equipo), la agregamos.
+alter table postulacion_competencia add column if not exists grupo int;
 
 create index if not exists idx_pc_competencia on postulacion_competencia (competencia);
 

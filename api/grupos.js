@@ -11,16 +11,16 @@ export default async function handler(req, res) {
     const equipos = new Set((cfg?.comps || []).filter(c => c.modalidad === 'equipo').map(c => c.id));
 
     const filas = await sql`
-      select pc.competencia, p.nombre, p.curso
+      select pc.competencia, pc.grupo, p.nombre, p.curso
       from postulacion_competencia pc
       join postulacion p on p.id = pc.postulacion_id
-      order by pc.competencia, p.nombre`;
+      order by pc.competencia, pc.grupo nulls last, p.nombre`;
 
     const grupos = {};
     for (const f of filas) {
       if (!equipos.has(f.competencia)) continue;
       if (!grupos[f.competencia]) grupos[f.competencia] = [];
-      grupos[f.competencia].push({ nombre: f.nombre, curso: f.curso });
+      grupos[f.competencia].push({ nombre: f.nombre, curso: f.curso, grupo: f.grupo });
     }
 
     res.setHeader('Cache-Control', 'no-store');
