@@ -1,0 +1,654 @@
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --ink:#0d1117;
+  --panel:#151b24;
+  --panel-2:#1c2430;
+  --line:#2a3440;
+  --text:#e8edf3;
+  --muted:#8a97a6;
+  --white:#fff;
+  --ok:#9acc12;
+  --warn:#f0a11a;
+  --stop:#ff5252;
+
+  --c-tec:#a83fa0;
+  --c-sus:#9acc12;
+  --c-inn:#e2643f;
+  --c-ges:#3d90ee;
+  --c-dis:#db30a0;
+  --c-cba:#ff4444;
+  --c-cul:#29abe2;
+  --c-urb:#e2d900;
+
+  --display:'Archivo','Helvetica Neue',Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink);color:var(--text);font-family:var(--display);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:15px}
+a{color:inherit}
+
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px 120px}
+
+/* ---------- header ---------- */
+.top{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#121821,#0d1117);position:relative;overflow:hidden}
+.top .wrap{padding-top:28px;padding-bottom:24px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:clamp(28px,6vw,46px);font-weight:800;letter-spacing:-.02em;margin:8px 0 6px;line-height:1.02}
+h1 em{font-style:normal;color:var(--muted)}
+.sub{color:var(--muted);max-width:56ch;margin:0}
+.deadline{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.dot.off{background:var(--stop)}
+
+.tabs{display:flex;gap:4px;margin-top:22px;border-bottom:1px solid var(--line)}
+.tab{background:none;border:0;color:var(--muted);padding:10px 14px;font-size:13px;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--text);border-bottom-color:var(--text)}
+
+/* ---------- filters ---------- */
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin:26px 0 18px}
+.chip{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:5px 12px;font-size:12px;font-family:var(--mono);letter-spacing:.02em}
+.chip[aria-pressed="true"]{border-color:currentColor;color:var(--text);background:var(--panel-2)}
+.chip .swatch{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+/* ---------- competencia cards ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+.card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s}
+.card:hover{border-color:#3a4756}
+.card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.card .cat{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.card h3{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.card .meta{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* signature: segmented cupo meter */
+.meter{display:flex;gap:3px;margin-top:2px}
+.seg{height:8px;flex:1;border-radius:2px;background:#26303c;border:1px solid transparent}
+.seg.on{background:var(--accent)}
+.seg.over{background:repeating-linear-gradient(45deg,var(--warn),var(--warn) 3px,#26303c 3px,#26303c 6px)}
+.count{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.count b{color:var(--text);font-weight:600;font-size:13px}
+.state{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.state.libre{color:var(--ok)}
+.state.pocos{color:var(--warn)}
+.state.espera{color:var(--stop)}
+
+.reg{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;color:var(--muted);text-decoration:none;border-bottom:1px dotted #3a4756;align-self:flex-start;padding-bottom:1px}
+.reg:hover{color:var(--text);border-bottom-color:var(--accent)}
+.reg .ext{font-size:10px;opacity:.7}
+.pickbtn{margin-top:4px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:8px 10px;font-size:13px;font-weight:600}
+.pickbtn:hover{border-color:#4a5867}
+.card.picked{border-color:var(--accent)}
+.card.picked .pickbtn{background:var(--accent);color:#0d1117;border-color:var(--accent)}
+.rank{position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:11px;font-weight:600;background:var(--accent);color:#0d1117;border-radius:5px;padding:2px 7px}
+
+/* ---------- tray ---------- */
+.tray{position:fixed;left:0;right:0;bottom:0;background:rgba(13,17,23,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:40}
+.tray .wrap{padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.tray .picks{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:200px;font-family:var(--mono);font-size:12px;max-height:104px;overflow-y:auto}
+.pill{border:1px solid var(--line);border-radius:6px;padding:4px 8px;display:flex;gap:6px;align-items:center}
+.pill .x{color:var(--muted);border:0;background:none;padding:0;font-size:14px;line-height:1}
+.btn{background:var(--text);color:#0d1117;border:0;border-radius:8px;padding:11px 18px;font-weight:700;font-size:14px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);font-weight:600}
+.btn.danger{background:transparent;color:var(--stop);border:1px solid #4a2b2b}
+
+/* ---------- form / modal ---------- */
+.modal{position:fixed;inset:0;background:rgba(5,8,12,.72);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto;z-index:60}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:12px;max-width:520px;width:100%;padding:22px}
+.sheet h2{margin:0 0 4px;font-size:22px;letter-spacing:-.01em}
+.sheet p.hint{color:var(--muted);font-size:13px;margin:0 0 18px}
+label{display:block;font-size:12px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 5px}
+input,select,textarea{width:100%;background:var(--ink);border:1px solid var(--line);color:var(--text);border-radius:7px;padding:10px 11px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid #4f8ff7;outline-offset:1px}
+.row{display:flex;gap:10px}
+.row>*{flex:1}
+.sheet .actions{display:flex;gap:8px;margin-top:20px}
+.err{color:var(--stop);font-size:13px;margin-top:10px;min-height:18px}
+.ordered{font-family:var(--mono);font-size:13px;background:var(--ink);border:1px solid var(--line);border-radius:7px;padding:10px 12px}
+.ordered div{padding:2px 0}
+
+/* ---------- admin ---------- */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:8px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid #1f2731;vertical-align:top}
+tr:hover td{background:#131a23}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.tag{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.tag.sel{color:var(--ok);border-color:#3f5a1a}
+.tag.sup{color:var(--warn);border-color:#5a4718}
+.section-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:30px 0 12px;flex-wrap:wrap}
+.section-h h2{font-size:18px;margin:0;letter-spacing:-.01em}
+.cfg{padding:10px;border-bottom:1px solid #1f2731;font-size:13px}
+.cfg-a{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+.cfg-b{margin-top:6px}
+.cfg input[type=number]{width:74px;padding:6px 8px;text-align:center;font-family:var(--mono)}
+.cfg input[type=url]{padding:6px 8px;font-family:var(--mono);font-size:11px}
+.cfg select{width:130px;padding:6px 8px;font-size:12px}
+.note{background:#131a23;border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:var(--muted);margin:14px 0}
+.empty{text-align:center;color:var(--muted);padding:48px 20px;border:1px dashed var(--line);border-radius:10px}
+.loading{text-align:center;color:var(--muted);padding:60px;font-family:var(--mono);font-size:13px}
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);background:var(--text);color:#0d1117;padding:10px 16px;border-radius:8px;font-weight:600;font-size:13px;z-index:80}
+.hide{display:none !important}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+@media (max-width:560px){.tray .wrap{padding-bottom:14px}.cfg{grid-template-columns:1fr;gap:6px}}
+</style>
+
+<div class="top">
+  <div class="wrap">
+    <div class="eyebrow">Convocatoria interna · Especialidad Programación</div>
+    <h1>ONIET 2026 <em>— anotate en una competencia</em></h1>
+    <p class="sub">Elegí todas las competencias que te interesen y ordenalas por preferencia: la primera que marques es tu prioridad. Los cupos por institución son limitados, así que anotarte es postularte — la lista final la arma la coordinación.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <div class="deadline"><span class="dot" id="statusDot"></span><span id="statusTxt">Cargando…</span></div>
+      <a class="deadline" style="text-decoration:none;color:var(--muted)" href="https://oniet.ubp.edu.ar/reglamentos/" target="_blank" rel="noopener">Reglamento general, premios y becas ↗</a>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tabAlumno" role="tab" aria-selected="true">Competencias</button>
+      <button class="tab" id="tabMia" role="tab" aria-selected="false">Mi postulación</button>
+      <button class="tab" id="tabAdmin" role="tab" aria-selected="false">Coordinación</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="viewAlumno">
+    <div class="filters" id="filters"></div>
+    <div class="grid" id="grid"><div class="loading">Cargando competencias…</div></div>
+  </div>
+
+  <div id="viewMia" class="hide">
+    <div class="section-h"><h2>Corregir o dar de baja mi postulación</h2></div>
+    <p class="sub">Si te equivocaste o querés cambiar las competencias, volvé a anotarte con el <b>mismo mail</b>: tu postulación se reemplaza por la nueva, no se duplica.</p>
+    <p class="sub" style="margin-top:14px">Para darte de baja del todo, escribile a la coordinación de la especialidad. No mostramos las postulaciones acá para que nadie pueda ver o borrar la de otro compañero.</p>
+  </div>
+
+  <div id="viewAdmin" class="hide"></div>
+</div>
+
+<div class="tray hide" id="tray">
+  <div class="wrap">
+    <div class="picks" id="picks"></div>
+    <button class="btn" id="goForm">Continuar</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- capa de datos: todo pasa por el backend ----------------
+   El navegador nunca ve la contraseña ni las postulaciones ajenas.
+   La sesión de coordinación vive en una cookie httpOnly firmada por el servidor. */
+var persistent = true;
+
+function api(ruta, opciones){
+  opciones = opciones || {};
+  return fetch('/api/' + ruta, {
+    method: opciones.method || 'GET',
+    headers: opciones.body ? {'Content-Type':'application/json'} : undefined,
+    body: opciones.body ? JSON.stringify(opciones.body) : undefined,
+    credentials: 'same-origin'
+  }).then(function(res){
+    if(res.status === 401) return {noAutorizado:true};
+    return res.json().then(function(j){
+      if(!res.ok) throw new Error(j && j.error ? j.error : 'Error ' + res.status);
+      return j;
+    });
+  });
+}
+
+/* ---------------- catálogo real ONIET 2026 (33 competencias) ---------------- */
+var CATS = {
+  TEC:{n:'Tecnología', c:'var(--c-tec)'},
+  CBA:{n:'Ciencias Básicas', c:'var(--c-cba)'},
+  CUL:{n:'Cultura', c:'var(--c-cul)'},
+  DIS:{n:'Diseño y Comunicación', c:'var(--c-dis)'},
+  GES:{n:'Gestión y Negocios', c:'var(--c-ges)'},
+  INN:{n:'Innovación', c:'var(--c-inn)'},
+  SUS:{n:'Sustentabilidad y Turismo', c:'var(--c-sus)'},
+  URB:{n:'Urbanismo y Sociedad', c:'var(--c-urb)'}
+};
+var BASE = 'https://oniet.ubp.edu.ar/competencias/';
+var CATALOGO = [
+  {id:'tecnopedia', n:'Tecnopedia', cat:'TEC', s:'tecnopedia'},
+  {id:'desarrollo-sistemas', n:'Desarrollo de Sistemas', cat:'TEC', s:'desarrollo-de-sistemas',
+   pdf:'https://oniet.ubp.edu.ar/wp-content/uploads/2026/06/012_Desarrollo_de_Sistemas_2026.pdf'},
+  {id:'resolucion-problemas', n:'Resolución de Problemas', cat:'TEC', s:'resol-de-problemas'},
+  {id:'oneday-videogame', n:'One-day Videogame', cat:'TEC', s:'oneday-videogame'},
+  {id:'full-game', n:'Full Game', cat:'TEC', s:'fullgame'},
+  {id:'electrosaber-1', n:'ElectroSaber I', cat:'TEC', s:'electrosaber-i'},
+  {id:'electrosaber-2', n:'ElectroSaber II', cat:'TEC', s:'electrosaber-ii'},
+  {id:'electroproblema-1', n:'ElectroProblema I', cat:'TEC', s:'electro-i'},
+  {id:'electroproblema-2', n:'ElectroProblema II', cat:'TEC', s:'electroproblema-ii'},
+  {id:'electronica-discreta', n:'Electrónica Discreta', cat:'TEC', s:'electronica-discreta'},
+  {id:'microcontroladores', n:'Microcontroladores', cat:'TEC', s:'microcontroladores'},
+  {id:'machineplus', n:'MachinePlus', cat:'CBA', s:'machineplus'},
+  {id:'batalla-matematica', n:'Batalla Matemática', cat:'CBA', s:'batalla-matematica'},
+  {id:'speed-cube', n:'Speed Cube', cat:'CBA', s:'speed-cube'},
+  {id:'relatos-ia', n:'Relatos con IA', cat:'CUL', s:'relatos-con-ia'},
+  {id:'buscando-saber', n:'Buscando el Saber', cat:'CUL', s:'buscando-el-saber'},
+  {id:'topicos-actualidad', n:'Tópicos de Actualidad', cat:'CUL', s:'topicos-de-actualidad'},
+  {id:'ajedrez-online', n:'Ajedrez On Line', cat:'CUL', s:'ajedrez-online'},
+  {id:'ajedrez-presencial', n:'Ajedrez Presencial', cat:'CUL', s:'ajedrez-presencial'},
+  {id:'maravillas-locales', n:'Maravillas Locales', cat:'CUL', s:'maravillas-locales'},
+  {id:'personal-pitch', n:'Personal Pitch', cat:'CUL', s:'personal-pitch'},
+  {id:'diseno-postales', n:'Diseño de Postales', cat:'DIS', s:'dis-postales'},
+  {id:'mirando-futuro', n:'Mirando hacia el Futuro', cat:'DIS', s:'hacia-el-futuro'},
+  {id:'cuentas-claras', n:'Cuentas Claras', cat:'GES', s:'cuentas-claras'},
+  {id:'proyecto-escuela', n:'Proyecto Escuela', cat:'GES', s:'proyecto-escuela'},
+  {id:'firstplan', n:'FirstPlan', cat:'GES', s:'firstplan'},
+  {id:'prototipos', n:'Prototipos', cat:'INN', s:'prototipos'},
+  {id:'robots-carton', n:'Robots y Cartón', cat:'INN', s:'robot-carton'},
+  {id:'circu-lab', n:'Circu-Lab: ideas que transforman', cat:'SUS', s:'circu-lab'},
+  {id:'reinventar-turismo', n:'Reinventar el Turismo', cat:'SUS', s:'reinventar-turismo'},
+  {id:'tu-colegio-ideal', n:'Tu Colegio Ideal', cat:'URB', s:'tu-colegio-ideal'},
+  {id:'quien-da-mas', n:'Quién da Más', cat:'URB', s:'quien-da-mas'},
+  {id:'poder-ciudadano', n:'Poder Ciudadano', cat:'URB', s:'poder-ciudadano'}
+];
+
+var DEFAULT_CFG = {
+  edicion:'ONIET 2026 · 30ª edición · 2 al 9 de octubre',
+  cierre:'',
+  abierta:true,
+  maxPref:0,          /* 0 = sin límite de competencias por alumno */
+  comps: CATALOGO.map(function(c){
+    return {id:c.id, n:c.n, cat:c.cat, cupo:2, modalidad:'equipo', activa:true,
+            web: BASE + c.s + '/', pdf: c.pdf || ''};
+  })
+};
+
+/* ---------------- estado ---------------- */
+var CFG=null, INSC=[], COUNTS={}, picks=[], filtro='ALL', adminOk=false, vista='alumno';
+var $ = function(s){ return document.querySelector(s); };
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; }); }
+function toast(msg){
+  var t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2600);
+}
+
+function loadCfg(){
+  return api('estado').then(function(r){
+    COUNTS = r.conteos || {};
+    var raw = r.config ? JSON.stringify(r.config) : null;
+    if(!raw){ CFG = JSON.parse(JSON.stringify(DEFAULT_CFG)); return; }
+    try{
+      var c = JSON.parse(raw);
+      CFG = Object.assign(JSON.parse(JSON.stringify(DEFAULT_CFG)), c);
+      var saved = {};
+      if(Array.isArray(c.comps)) c.comps.forEach(function(x){ saved[x.id] = x; });
+      /* el catálogo manda en nombre/categoría/links; lo guardado manda en cupo, modalidad y PDF */
+      CFG.comps = DEFAULT_CFG.comps.map(function(base){
+        var s = saved[base.id];
+        if(!s) return JSON.parse(JSON.stringify(base));
+        return {
+          id: base.id, n: base.n, cat: base.cat, web: base.web,
+          cupo: (typeof s.cupo === 'number') ? s.cupo : base.cupo,
+          modalidad: s.modalidad || base.modalidad,
+          activa: (typeof s.activa === 'boolean') ? s.activa : base.activa,
+          pdf: s.pdf || base.pdf || ''
+        };
+      });
+    }catch(e){ CFG = JSON.parse(JSON.stringify(DEFAULT_CFG)); }
+  });
+}
+function saveCfg(){
+  return api('config', {method:'PUT', body:{config:CFG}})
+    .then(function(r){ return !r.noAutorizado; })
+    .catch(function(){ return false; });
+}
+function compById(id){ return CFG.comps.filter(function(c){ return c.id===id; })[0]; }
+/* los conteos los da el servidor: el alumno ve cuántos se anotaron, nunca quiénes */
+function anotados(id){ return COUNTS[id] || 0; }
+function primeraOpcion(id){
+  return INSC.filter(function(r){ return (r.prefs||[])[0] === id; }).length;
+}
+
+/* ---------------- vista alumno ---------------- */
+function renderStatus(){
+  var abierta = CFG.abierta;
+  $('#statusDot').className = 'dot' + (abierta?'':' off');
+  var txt = abierta ? 'Convocatoria abierta' : 'Convocatoria cerrada';
+  if(abierta && CFG.cierre) txt += ' · cierra el ' + CFG.cierre;
+  $('#statusTxt').textContent = txt;
+}
+
+function renderFilters(){
+  var used = {}; CFG.comps.forEach(function(c){ if(c.activa) used[c.cat]=1; });
+  var html = '<button class="chip" data-cat="ALL" aria-pressed="'+(filtro==='ALL')+'">Todas ('+CFG.comps.filter(function(c){return c.activa;}).length+')</button>';
+  Object.keys(CATS).forEach(function(k){
+    if(!used[k]) return;
+    var n = CFG.comps.filter(function(c){ return c.activa && c.cat===k; }).length;
+    html += '<button class="chip" data-cat="'+k+'" aria-pressed="'+(filtro===k)+'"><span class="swatch" style="background:'+CATS[k].c+'"></span>'+esc(CATS[k].n)+' ('+n+')</button>';
+  });
+  $('#filters').innerHTML = html;
+  Array.prototype.forEach.call($('#filters').children, function(b){
+    b.onclick = function(){ filtro = b.dataset.cat; renderFilters(); renderGrid(); };
+  });
+}
+
+function renderGrid(){
+  var list = CFG.comps.filter(function(c){ return c.activa && (filtro==='ALL' || c.cat===filtro); });
+  if(!list.length){ $('#grid').innerHTML = '<div class="empty">No hay competencias en esta categoría.</div>'; return; }
+  $('#grid').innerHTML = list.map(function(c){
+    var col = CATS[c.cat] ? CATS[c.cat].c : 'var(--muted)';
+    var n = anotados(c.id), cupo = Math.max(0, c.cupo|0);
+    var libres = cupo - n;
+    var estado = libres > 1 ? ['libre', libres+' lugares libres'] :
+                 libres === 1 ? ['pocos','último lugar'] :
+                 libres === 0 ? ['pocos','cupo completo'] :
+                                ['espera','lista de espera'];
+    var segs = '';
+    var total = Math.max(cupo, 1);
+    for(var i=0;i<total;i++){
+      segs += '<div class="seg'+(i<n?' on':'')+'"></div>';
+    }
+    if(n>cupo) segs += '<div class="seg over" title="postulaciones por encima del cupo"></div>';
+    var idx = picks.indexOf(c.id);
+    return '<div class="card'+(idx>=0?' picked':'')+'" style="--accent:'+col+'">'
+      + (idx>=0 ? '<span class="rank">'+(idx+1)+'ª</span>' : '')
+      + '<div class="cat">'+esc(CATS[c.cat]?CATS[c.cat].n:c.cat)+'</div>'
+      + '<h3>'+esc(c.n)+'</h3>'
+      + '<div class="meta">'+(c.modalidad==='individual'?'Individual':'Por equipo')+' · cupo institución: '+cupo+'</div>'
+      + '<div class="meter">'+segs+'</div>'
+      + '<div class="count"><span><b>'+n+'</b> / '+cupo+' postulados</span><span class="state '+estado[0]+'">'+estado[1]+'</span></div>'
+      + (c.pdf
+          ? '<a class="reg" href="'+esc(c.pdf)+'" target="_blank" rel="noopener">Reglamento (PDF) <span class="ext">↗</span></a>'
+          : (c.web ? '<a class="reg" href="'+esc(c.web)+'" target="_blank" rel="noopener">Ver reglamento y consigna <span class="ext">↗</span></a>' : ''))
+      + '<button class="pickbtn" data-id="'+c.id+'">'+(idx>=0?'Quitar de mi lista':'Elegir')+'</button>'
+      + '</div>';
+  }).join('');
+  Array.prototype.forEach.call($('#grid').querySelectorAll('.pickbtn'), function(b){
+    b.onclick = function(){ togglePick(b.dataset.id); };
+  });
+}
+
+function togglePick(id){
+  if(!CFG.abierta){ toast('La convocatoria está cerrada'); return; }
+  var i = picks.indexOf(id);
+  if(i>=0) picks.splice(i,1);
+  else{
+    if(CFG.maxPref > 0 && picks.length >= CFG.maxPref){ toast('Podés elegir hasta '+CFG.maxPref+' competencias'); return; }
+    picks.push(id);
+  }
+  renderGrid(); renderTray();
+}
+
+function renderTray(){
+  var tray = $('#tray');
+  if(!picks.length || vista!=='alumno'){ tray.classList.add('hide'); return; }
+  tray.classList.remove('hide');
+  $('#goForm').textContent = 'Continuar con ' + picks.length + (picks.length===1 ? ' competencia' : ' competencias');
+  $('#picks').innerHTML = picks.map(function(id,i){
+    var c = compById(id);
+    return '<span class="pill">'+(i+1)+'ª · '+esc(c?c.n:id)+' <button class="x" data-id="'+id+'" aria-label="Quitar">×</button></span>';
+  }).join('');
+  Array.prototype.forEach.call($('#picks').querySelectorAll('.x'), function(b){
+    b.onclick = function(){ togglePick(b.dataset.id); };
+  });
+}
+
+/* ---------------- formulario ---------------- */
+function openForm(){
+  var m = document.createElement('div');
+  m.className='modal';
+  m.innerHTML = '<div class="sheet" role="dialog" aria-modal="true">'
+    + '<h2>Confirmá tu postulación</h2>'
+    + '<p class="hint">Estos datos los usa la coordinación para armar la delegación y para la inscripción oficial en la plataforma de la UBP.</p>'
+    + '<div class="ordered">' + picks.map(function(id,i){
+        var c = compById(id);
+        var link = c && (c.pdf || c.web);
+        return '<div>'+(i+1)+'ª opción — '+esc(c?c.n:id)
+          + (link ? ' <a class="reg" style="margin-left:6px" href="'+esc(link)+'" target="_blank" rel="noopener">reglamento ↗</a>' : '')
+          + '</div>';
+      }).join('') + '</div>'
+    + '<p class="hint" style="margin:10px 0 0">Leé el reglamento de cada una antes de confirmar: algunas piden equipo armado y otras son individuales.</p>'
+    + '<div class="row"><div><label for="fNom">Nombre y apellido</label><input id="fNom" autocomplete="name"></div></div>'
+    + '<div class="row"><div><label for="fCurso">Curso y división</label><input id="fCurso" placeholder="6º A"></div>'
+    + '<div><label for="fMod">Modalidad</label><select id="fMod"><option value="presencial">Puedo viajar a Córdoba</option><option value="online">Sólo online</option><option value="indistinto">Indistinto</option></select></div></div>'
+    + '<label for="fMail">Mail de contacto</label><input id="fMail" type="email" autocomplete="email" placeholder="tunombre@escuela.edu.ar">'
+    + '<label for="fTel">Teléfono (opcional)</label><input id="fTel" inputmode="tel">'
+    + '<label for="fExp">¿Por qué te interesa? ¿Tenés experiencia previa? (opcional)</label><textarea id="fExp" rows="3"></textarea>'
+    + '<div class="err" id="fErr"></div>'
+    + '<div class="actions"><button class="btn" id="fOk">Enviar postulación</button><button class="btn ghost" id="fNo">Cancelar</button></div>'
+    + '</div>';
+  document.body.appendChild(m);
+  m.querySelector('#fNo').onclick = function(){ m.remove(); };
+  m.onclick = function(e){ if(e.target===m) m.remove(); };
+  m.querySelector('#fOk').onclick = function(){
+    var nom = m.querySelector('#fNom').value.trim();
+    var curso = m.querySelector('#fCurso').value.trim();
+    var mail = m.querySelector('#fMail').value.trim();
+    if(nom.length<3 || !curso || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){
+      m.querySelector('#fErr').textContent = 'Completá nombre, curso y un mail válido.'; return;
+    }
+    var btn = m.querySelector('#fOk'); btn.disabled = true; btn.textContent = 'Enviando…';
+    var rec = {
+      id: 'i'+Date.now()+Math.floor(Math.random()*1000),
+      ts: new Date().toISOString(),
+      nombre: nom, curso: curso, email: mail,
+      tel: m.querySelector('#fTel').value.trim(),
+      modalidad: m.querySelector('#fMod').value,
+      exp: m.querySelector('#fExp').value.trim().slice(0,500),
+      prefs: picks.slice(),
+      estado: 'postulado'
+    };
+    api('postular', {method:'POST', body:rec}).then(function(r){
+      COUNTS = r.conteos || COUNTS;
+      picks = []; m.remove(); renderGrid(); renderTray();
+      toast(r.actualizado ? 'Actualizamos tu postulación.' : 'Postulación enviada. Te avisamos por mail.');
+    }).catch(function(e){
+      m.querySelector('#fErr').textContent = e.message || 'No se pudo guardar. Probá de nuevo en unos segundos.';
+      btn.disabled = false; btn.textContent = 'Enviar postulación';
+    });
+  };
+  m.querySelector('#fNom').focus();
+}
+
+/* ---------------- coordinación ---------------- */
+function renderAdmin(){
+  var v = $('#viewAdmin');
+  if(!adminOk){
+    v.innerHTML = '<div class="section-h"><h2>Panel de coordinación</h2></div>'
+      + '<p class="sub">Ingresá la contraseña para ver las postulaciones y configurar los cupos.</p>'
+      + '<div class="row" style="max-width:360px;margin-top:12px"><input id="pinIn" type="password" placeholder="Contraseña"><button class="btn ghost" id="pinBtn" style="flex:0 0 auto">Entrar</button></div>'
+      + '<div class="note">La contraseña evita que un alumno abra el panel por curiosidad, no es seguridad real. Podés cambiarla desde Configuración. No cargues acá datos sensibles (DNI, domicilios): pedilos aparte, sólo a los seleccionados.</div>';
+    $('#pinBtn').onclick = function(){
+      var b = $('#pinBtn'); b.disabled = true; b.textContent = 'Entrando…';
+      api('login', {method:'POST', body:{password: $('#pinIn').value}}).then(function(r){
+        b.disabled = false; b.textContent = 'Entrar';
+        if(r.ok){ adminOk = true; refresh().then(renderAdmin); }
+        else toast('Contraseña incorrecta');
+      }).catch(function(){ b.disabled=false; b.textContent='Entrar'; toast('No se pudo verificar'); });
+    };
+    $('#pinIn').onkeydown = function(e){ if(e.key==='Enter') $('#pinBtn').click(); };
+    return;
+  }
+
+  var demanda = CFG.comps.filter(function(c){ return c.activa; }).map(function(c){
+    return {c:c, n:anotados(c.id), p:primeraOpcion(c.id)};
+  }).sort(function(a,b){ return b.n - a.n; });
+
+  var html = '';
+  html += '<div class="section-h"><h2>Postulaciones <span class="tag">'+INSC.length+'</span></h2>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" id="csvBtn">CSV por alumno</button>'
+        + '<button class="btn ghost" id="csvCompBtn">CSV por competencia</button>'
+        + '<button class="btn ghost" id="reloadBtn">Actualizar</button></div></div>';
+
+  if(!INSC.length){
+    html += '<div class="empty">Todavía no se anotó nadie. Compartí el enlace con los cursos.</div>';
+  } else {
+    html += '<div class="tbl-wrap"><table><thead><tr><th>Alumno</th><th>Curso</th><th>Competencias elegidas (en orden de preferencia)</th><th>Modalidad</th><th>Contacto</th><th>Estado</th><th></th></tr></thead><tbody>';
+    INSC.slice().sort(function(a,b){ return a.ts<b.ts?-1:1; }).forEach(function(r){
+      var prefs = (r.prefs||[]).map(function(id,i){ var c=compById(id); return '<span style="white-space:nowrap"><span style="color:var(--muted);font-family:var(--mono);font-size:11px">'+(i+1)+'.</span> '+esc(c?c.n:id)+'</span>'; }).join(' · ');
+      prefs = '<div style="min-width:240px">'+prefs+'</div>';
+      html += '<tr><td><b>'+esc(r.nombre)+'</b>'+(r.exp?'<div style="color:var(--muted);font-size:12px;margin-top:3px">'+esc(r.exp)+'</div>':'')+'</td>'
+        + '<td>'+esc(r.curso)+'</td><td>'+prefs+'</td><td>'+esc(r.modalidad)+'</td>'
+        + '<td style="font-family:var(--mono);font-size:11px">'+esc(r.email)+(r.tel?'<br>'+esc(r.tel):'')+'</td>'
+        + '<td><span class="tag '+(r.estado==='seleccionado'?'sel':r.estado==='suplente'?'sup':'')+'">'+esc(r.estado)+'</span></td>'
+        + '<td><select class="estSel" data-mail="'+esc(r.email)+'" style="width:120px;padding:5px;font-size:12px">'
+        + ['postulado','seleccionado','suplente','descartado'].map(function(s){ return '<option'+(r.estado===s?' selected':'')+'>'+s+'</option>'; }).join('')
+        + '</select></td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  html += '<div class="section-h"><h2>Demanda por competencia</h2></div><div class="tbl-wrap"><table><thead><tr><th>Competencia</th><th>Postulados</th><th>Como 1ª opción</th><th>Cupo</th><th>Situación</th></tr></thead><tbody>';
+  demanda.forEach(function(d){
+    var dif = d.n - d.c.cupo;
+    var sit = dif>0 ? '<span class="state espera">'+dif+' de más</span>' : dif===0 ? '<span class="state pocos">justo</span>' : '<span class="state libre">'+(-dif)+' libres</span>';
+    html += '<tr><td>'+esc(d.c.n)+'</td><td><b>'+d.n+'</b></td><td>'+d.p+'</td><td>'+d.c.cupo+'</td><td>'+sit+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  html += '<div class="section-h"><h2>Configuración</h2><button class="btn" id="saveCfgBtn">Guardar cambios</button></div>';
+  html += '<div class="tbl-wrap" style="padding:12px">'
+    + '<label for="cEdicion">Encabezado de la edición</label><input id="cEdicion" value="'+esc(CFG.edicion)+'">'
+    + '<div class="row" style="margin-top:4px"><div><label for="cCierre">Cierre de la convocatoria interna</label><input id="cCierre" placeholder="19/09" value="'+esc(CFG.cierre)+'"></div>'
+    + '<div><label for="cMax">Máximo de competencias por alumno (0 = sin límite)</label><input id="cMax" type="number" min="0" max="33" value="'+CFG.maxPref+'"></div></div>'
+    + '<label for="cAbierta">Estado</label><select id="cAbierta"><option value="1"'+(CFG.abierta?' selected':'')+'>Abierta</option><option value="0"'+(!CFG.abierta?' selected':'')+'>Cerrada</option></select>'
+    + '</div>';
+
+  html += '<div class="section-h"><h2>Cupos por competencia</h2></div>'
+    + '<div class="note">Los cupos vienen precargados en 2 por competencia: ajustalos según el reglamento de cada disciplina y lo que la escuela pueda cubrir, y desactivá las que no vayas a ofrecer.<br><br>'
+    + 'Cada tarjeta ya enlaza a la página oficial de la competencia, donde está el botón "Reglamento". Si querés que el alumno abra el PDF de una, entrá a esa página, copiá el link del PDF y pegalo acá abajo. Siguen el patrón <span style="font-family:var(--mono);font-size:11px">.../wp-content/uploads/2026/06/NNN_Nombre_2026.pdf</span> y el número cambia en cada una, así que hay que copiarlos de a uno.</div>'
+    + '<div class="tbl-wrap">';
+  Object.keys(CATS).forEach(function(k){
+    var comps = CFG.comps.filter(function(c){ return c.cat===k; });
+    if(!comps.length) return;
+    html += '<div style="padding:12px 10px 4px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:'+CATS[k].c+'">'+esc(CATS[k].n)+'</div>';
+    comps.forEach(function(c){
+      html += '<div class="cfg"><div class="cfg-a"><div><label style="margin:0;text-transform:none;letter-spacing:0;font-family:var(--display);font-size:14px;color:var(--text)">'
+        + '<input type="checkbox" class="cAct" data-id="'+c.id+'" '+(c.activa?'checked':'')+' style="width:auto;margin-right:8px;vertical-align:middle"> '+esc(c.n)+'</label>'
+        + (c.web ? ' <a class="reg" href="'+esc(c.web)+'" target="_blank" rel="noopener">página oficial ↗</a>' : '') + '</div>'
+        + '<select class="cMod" data-id="'+c.id+'"><option value="equipo"'+(c.modalidad==='equipo'?' selected':'')+'>Por equipo</option><option value="individual"'+(c.modalidad==='individual'?' selected':'')+'>Individual</option></select>'
+        + '<input type="number" class="cCupo" data-id="'+c.id+'" min="0" max="99" value="'+(c.cupo|0)+'"></div>'
+        + '<div class="cfg-b"><input type="url" class="cPdf" data-id="'+c.id+'" placeholder="PDF directo del reglamento (opcional)" value="'+esc(c.pdf||'')+'"></div></div>';
+    });
+  });
+  html += '</div>';
+
+  v.innerHTML = html;
+
+  var rb = $('#reloadBtn'); if(rb) rb.onclick = function(){ refresh().then(function(){ renderAdmin(); toast('Actualizado'); }); };
+  var cb = $('#csvBtn'); if(cb) cb.onclick = exportCsv;
+  var ccb = $('#csvCompBtn'); if(ccb) ccb.onclick = exportCsvPorCompetencia;
+  Array.prototype.forEach.call(v.querySelectorAll('.estSel'), function(s){
+    s.onchange = function(){
+      api('postulaciones', {method:'PATCH', body:{email:s.dataset.mail, estado:s.value}})
+        .then(refresh).then(renderAdmin)
+        .catch(function(){ toast('No se pudo actualizar'); });
+    };
+  });
+  $('#saveCfgBtn').onclick = function(){
+    CFG.edicion = $('#cEdicion').value;
+    CFG.cierre = $('#cCierre').value;
+    CFG.maxPref = Math.max(0, Math.min(33, parseInt($('#cMax').value,10)||0));
+    CFG.abierta = $('#cAbierta').value === '1';
+    Array.prototype.forEach.call(v.querySelectorAll('.cCupo'), function(i){
+      var c = compById(i.dataset.id); if(c) c.cupo = Math.max(0, parseInt(i.value,10)||0);
+    });
+    Array.prototype.forEach.call(v.querySelectorAll('.cMod'), function(i){
+      var c = compById(i.dataset.id); if(c) c.modalidad = i.value;
+    });
+    Array.prototype.forEach.call(v.querySelectorAll('.cAct'), function(i){
+      var c = compById(i.dataset.id); if(c) c.activa = i.checked;
+    });
+    Array.prototype.forEach.call(v.querySelectorAll('.cPdf'), function(i){
+      var c = compById(i.dataset.id); if(!c) return;
+      var u = i.value.trim();
+      c.pdf = /^https?:\/\//i.test(u) ? u : '';
+    });
+    saveCfg().then(function(ok){
+      toast(ok ? 'Cambios guardados' : 'No se pudo guardar');
+      renderStatus(); renderFilters(); renderGrid();
+    });
+  };
+}
+
+function exportCsv(){
+  var cols = ['nombre','curso','email','tel','modalidad','cantidad','competencias_en_orden','estado','experiencia','fecha'];
+  var rows = INSC.map(function(r){
+    var p = (r.prefs||[]).map(function(id){ var c=compById(id); return c?c.n:id; });
+    return [r.nombre, r.curso, r.email, r.tel||'', r.modalidad||'', p.length, p.join(' | '), r.estado||'', (r.exp||'').replace(/\s+/g,' '), r.ts];
+  });
+  var csv = [cols].concat(rows).map(function(row){
+    return row.map(function(cell){ return '"'+String(cell==null?'':cell).replace(/"/g,'""')+'"'; }).join(',');
+  }).join('\r\n');
+  descargar('postulaciones-oniet-2026.csv', csv);
+}
+
+/* una fila por alumno-competencia: es el formato que sirve para armar cada equipo */
+function exportCsvPorCompetencia(){
+  var cols = ['competencia','categoria','orden_de_preferencia','alumno','curso','email','tel','modalidad','estado'];
+  var rows = [];
+  CFG.comps.forEach(function(c){
+    INSC.forEach(function(r){
+      var i = (r.prefs||[]).indexOf(c.id);
+      if(i < 0) return;
+      rows.push([c.n, CATS[c.cat]?CATS[c.cat].n:c.cat, i+1, r.nombre, r.curso, r.email, r.tel||'', r.modalidad||'', r.estado||'']);
+    });
+  });
+  var csv = [cols].concat(rows).map(function(row){
+    return row.map(function(cell){ return '"'+String(cell==null?'':cell).replace(/"/g,'""')+'"'; }).join(',');
+  }).join('\r\n');
+  descargar('postulaciones-por-competencia-oniet-2026.csv', csv);
+}
+
+function descargar(nombre, csv){
+  var blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nombre;
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+}
+
+/* ---------------- navegación ---------------- */
+function setVista(v){
+  vista = v;
+  $('#viewAlumno').classList.toggle('hide', v!=='alumno');
+  $('#viewMia').classList.toggle('hide', v!=='mia');
+  $('#viewAdmin').classList.toggle('hide', v!=='admin');
+  $('#tabAlumno').setAttribute('aria-selected', v==='alumno');
+  $('#tabMia').setAttribute('aria-selected', v==='mia');
+  $('#tabAdmin').setAttribute('aria-selected', v==='admin');
+  renderTray();
+  if(v==='admin') renderAdmin();
+}
+
+function refresh(){
+  return api('estado').then(function(r){
+    COUNTS = r.conteos || {};
+    if(r.config) CFG.abierta = r.config.abierta;
+    if(!adminOk) return;
+    return api('postulaciones').then(function(p){
+      if(p.noAutorizado){ adminOk = false; INSC = []; return; }
+      INSC = p.postulaciones || [];
+    });
+  });
+}
+
+/* ---------------- init ---------------- */
+$('#tabAlumno').onclick = function(){ setVista('alumno'); };
+$('#tabMia').onclick = function(){ setVista('mia'); };
+$('#tabAdmin').onclick = function(){ setVista('admin'); };
+$('#goForm').onclick = openForm;
+
+loadCfg().then(refresh).then(function(){
+  document.querySelector('.top h1').innerHTML = 'ONIET 2026 <em>— anotate en una competencia</em>';
+  renderStatus(); renderFilters(); renderGrid();
+  if(!persistent){
+    var n=document.createElement('div'); n.className='note'; n.style.margin='18px 0 0';
+    n.textContent='Atención: en este entorno no hay almacenamiento persistente, así que las postulaciones sólo viven en esta pestaña.';
+    $('#viewAlumno').prepend(n);
+  }
+}).catch(function(e){
+  $('#grid').innerHTML = '<div class="empty">No se pudo cargar. Recargá la página.</div>';
+});
+})();
+</script>
