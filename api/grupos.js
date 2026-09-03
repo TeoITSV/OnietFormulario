@@ -14,6 +14,7 @@ export default async function handler(req, res) {
       select pc.competencia, pc.grupo, p.nombre, p.curso
       from postulacion_competencia pc
       join postulacion p on p.id = pc.postulacion_id
+      where p.estado <> 'descartado'
       order by pc.competencia, pc.grupo nulls last, p.nombre`;
 
     const grupos = {};

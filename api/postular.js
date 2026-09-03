@@ -4,7 +4,8 @@ const MAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const ESPECIALIDADES = ['electromecanica', 'programacion', 'electronica', 'primer-ciclo'];
 
 /* Público, pero validado del lado del servidor: el frontend no es de fiar.
-   Volver a postularse con el mismo mail reemplaza la postulación anterior. */
+   Volver a postularse con el mismo mail actualiza los datos de contacto y
+   suma las competencias nuevas a las que ya tenía (no las reemplaza). */
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 
@@ -36,22 +37,37 @@ export default async function handler(req, res) {
     const elegidas = prefs.filter(id => activas.has(id));
     if (!elegidas.length) return res.status(400).json({ error: 'Las competencias elegidas ya no están disponibles.' });
 
-    const tope = Number(cfg?.maxPref || 0);
-    if (tope > 0 && elegidas.length > tope) {
-      return res.status(400).json({ error: `Podés elegir hasta ${tope} competencias.` });
-    }
-
     const previas = await sql`select id from postulacion where email = ${email}`;
     const idPrevio = previas.length > 0 ? previas[0].id : null;
     const actualizado = previas.length > 0;
 
-    /* para las competencias por equipo, el alumno elige a qué grupo se
+    /* si ya tenía una postulación, sumamos las competencias nuevas a las que
+       ya tenía en vez de reemplazarlas, para no perder anotaciones previas */
+    const prefsPrevias = idPrevio
+      ? await sql`select competencia, grupo from postulacion_competencia where postulacion_id = ${idPrevio} order by orden`
+      : [];
+    const idsPrevios = prefsPrevias.map(p => p.competencia);
+    const grupoPrevioPorCompetencia = new Map(prefsPrevias.map(p => [p.competencia, p.grupo]));
+    const nuevas = elegidas.filter(id => !idsPrevios.includes(id));
+    const combinadas = idsPrevios.concat(nuevas);
+
+    const tope = Number(cfg?.maxPref || 0);
+    if (tope > 0 && combinadas.length > tope) {
+      return res.status(400).json({
+        error: idsPrevios.length
+          ? `Ya tenés ${idsPrevios.length} competencia(s) anotadas; podés sumar hasta ${Math.max(0, tope - idsPrevios.length)} más.`
+          : `Podés elegir hasta ${tope} competencias.`
+      });
+    }
+
+    /* para las competencias por equipo nuevas, el alumno elige a qué grupo se
        suma (Grupo 1, Grupo 2...); validamos cupo de grupos y que ese
-       grupo puntual no esté ya completo según los integrantes cargados */
+       grupo puntual no esté ya completo según los integrantes cargados.
+       Las que ya tenía conservan el grupo que ya se les había asignado. */
     const compMap = new Map((cfg?.comps || []).map(c => [c.id, c]));
     const gruposSel = (b.grupos && typeof b.grupos === 'object') ? b.grupos : {};
     const grupoPorCompetencia = {};
-    for (const compId of elegidas) {
+    for (const compId of nuevas) {
       const c = compMap.get(compId);
       if (!c || c.modalidad !== 'equipo') continue;
       const cupoGrupos = Number(c.cupo) || 0;
@@ -62,9 +78,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: `Elegí un grupo válido para "${c.n}".` });
       }
       const ocupado = await sql`
-        select count(*)::int as n from postulacion_competencia
-        where competencia = ${compId} and grupo = ${grupo}
-          and postulacion_id is distinct from ${idPrevio}`;
+        select count(*)::int as n from postulacion_competencia pc
+        join postulacion p on p.id = pc.postulacion_id
+        where pc.competencia = ${compId} and pc.grupo = ${grupo}
+          and pc.postulacion_id is distinct from ${idPrevio}
+          and p.estado <> 'descartado'`;
       if (ocupado[0].n >= integrantes) {
         return res.status(400).json({ error: `El grupo ${grupo} de "${c.n}" ya está completo.` });
       }
@@ -82,10 +100,14 @@ export default async function handler(req, res) {
     const id = filas[0].id;
 
     await sql`delete from postulacion_competencia where postulacion_id = ${id}`;
-    for (let i = 0; i < elegidas.length; i++) {
+    for (let i = 0; i < combinadas.length; i++) {
+      const compId = combinadas[i];
+      const grupo = idsPrevios.includes(compId)
+        ? (grupoPrevioPorCompetencia.get(compId) ?? null)
+        : (grupoPorCompetencia[compId] ?? null);
       await sql`
         insert into postulacion_competencia (postulacion_id, competencia, orden, grupo)
-        values (${id}, ${elegidas[i]}, ${i + 1}, ${grupoPorCompetencia[elegidas[i]] ?? null})`;
+        values (${id}, ${compId}, ${i + 1}, ${grupo})`;
     }
 
     return res.status(200).json({ ok: true, actualizado, conteos: await conteos() });

@@ -49,7 +49,7 @@ anotaron (para que puedan armar el equipo) — nunca mail ni teléfono.
 
    | Variable | Valor |
    |---|---|
-   | `COORD_PASSWORD` | `OnietITSVillada2026` (cambiala por una larga y única) |
+   | `COORD_PASSWORD` | una contraseña larga y única, que no uses en ningún otro lado |
    | `SESSION_SECRET` | 40+ caracteres al azar, ver abajo |
 
    Para generar el secreto: `openssl rand -base64 48`

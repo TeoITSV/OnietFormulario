@@ -66,9 +66,11 @@ export function passwordValida(intento) {
 
 export async function conteos() {
   const filas = await sql`
-    select competencia, count(*)::int as n
-    from postulacion_competencia
-    group by competencia`;
+    select pc.competencia, count(*)::int as n
+    from postulacion_competencia pc
+    join postulacion p on p.id = pc.postulacion_id
+    where p.estado <> 'descartado'
+    group by pc.competencia`;
   return Object.fromEntries(filas.map(f => [f.competencia, f.n]));
 }
 
