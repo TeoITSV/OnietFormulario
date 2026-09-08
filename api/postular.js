@@ -12,14 +12,15 @@ export default async function handler(req, res) {
   const b = req.body || {};
   const nombre = String(b.nombre || '').trim().slice(0, 120);
   const curso = String(b.curso || '').trim().slice(0, 40);
+  const dni = String(b.dni || '').replace(/\D/g, '').slice(0, 9);
   const email = String(b.email || '').trim().toLowerCase().slice(0, 160);
   const tel = String(b.tel || '').trim().slice(0, 40);
   const especialidad = ESPECIALIDADES.includes(b.especialidad) ? b.especialidad : '';
   const exp = String(b.exp || '').trim().slice(0, 500);
   const prefs = Array.isArray(b.prefs) ? b.prefs.map(String) : [];
 
-  if (nombre.length < 3 || !curso || !MAIL.test(email)) {
-    return res.status(400).json({ error: 'Completá nombre, curso y un mail válido.' });
+  if (nombre.length < 3 || !curso || !/^\d{7,9}$/.test(dni) || !MAIL.test(email)) {
+    return res.status(400).json({ error: 'Completá nombre, curso, DNI y un mail válido.' });
   }
   if (!especialidad) {
     return res.status(400).json({ error: 'Elegí tu especialidad.' });
@@ -90,10 +91,10 @@ export default async function handler(req, res) {
     }
 
     const filas = await sql`
-      insert into postulacion (nombre, curso, email, tel, especialidad, experiencia)
-      values (${nombre}, ${curso}, ${email}, ${tel}, ${especialidad}, ${exp})
+      insert into postulacion (nombre, curso, dni, email, tel, especialidad, experiencia)
+      values (${nombre}, ${curso}, ${dni}, ${email}, ${tel}, ${especialidad}, ${exp})
       on conflict (email) do update set
-        nombre = excluded.nombre, curso = excluded.curso, tel = excluded.tel,
+        nombre = excluded.nombre, curso = excluded.curso, dni = excluded.dni, tel = excluded.tel,
         especialidad = excluded.especialidad, experiencia = excluded.experiencia,
         creado = now()
       returning id`;

@@ -9,8 +9,12 @@ create table if not exists postulacion (
   especialidad text,
   experiencia text,
   estado      text not null default 'postulado',
-  creado      timestamptz not null default now()
+  creado      timestamptz not null default now(),
+  dni         text
 );
+
+-- si la tabla ya existía sin la columna "dni", la agregamos.
+alter table postulacion add column if not exists dni text;
 
 -- si la tabla ya existía con la columna vieja "modalidad" (todos iban del
 -- ITS Villada de la misma forma), la renombramos: ahora el alumno carga

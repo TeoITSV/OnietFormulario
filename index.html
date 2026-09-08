@@ -259,6 +259,8 @@ var ESPECIALIDADES_OPTS = [
 ];
 var ESPECIALIDADES = {};
 ESPECIALIDADES_OPTS.forEach(function(o){ ESPECIALIDADES[o.v] = o.n; });
+/* de 4º año en adelante cada especialidad tiene una división fija */
+var DIVISION_POR_ESPECIALIDAD = {electromecanica:'A', electronica:'B', programacion:'C'};
 var BASE = 'https://oniet.ubp.edu.ar/competencias/';
 var CATALOGO = [
   {id:'tecnopedia', n:'Tecnopedia', cat:'TEC', s:'tecnopedia'},
@@ -530,9 +532,16 @@ function openForm(){
       }).join('') + '</div>'
     + '<p class="hint" style="margin:10px 0 0">Leé el reglamento de cada una antes de confirmar: algunas piden equipo armado y otras son individuales.</p>'
     + gruposHtml
-    + '<div class="row"><div><label for="fNom">Nombre y apellido</label><input id="fNom" autocomplete="name"></div></div>'
-    + '<div class="row"><div><label for="fCurso">Curso y división</label><input id="fCurso" placeholder="6º A"></div>'
-    + '<div><label for="fEsp">Especialidad</label><select id="fEsp">'
+    + '<div class="row"><div><label for="fNom">Nombre y apellido</label><input id="fNom" autocomplete="name"></div>'
+    + '<div><label for="fDni">DNI</label><input id="fDni" inputmode="numeric" autocomplete="off" placeholder="12345678" maxlength="10"></div></div>'
+    + '<div class="row">'
+    + '<div><label for="fAnio">Año</label><select id="fAnio"><option value="">Elegí</option>'
+    + [1,2,3,4,5,6,7].map(function(n){ return '<option value="'+n+'">'+n+'º</option>'; }).join('')
+    + '</select></div>'
+    + '<div><label for="fDiv">División</label><select id="fDiv"><option value="">Elegí</option>'
+    + ['A','B','C'].map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('')
+    + '</select></div>'
+    + '<div><label for="fEsp">Especialidad</label><select id="fEsp"><option value="">Elegí</option>'
     + ESPECIALIDADES_OPTS.map(function(o){ return '<option value="'+o.v+'">'+esc(o.n)+'</option>'; }).join('')
     + '</select></div></div>'
     + '<label for="fMail">Mail de contacto</label><input id="fMail" type="email" autocomplete="email" placeholder="tunombre@escuela.edu.ar">'
@@ -544,6 +553,13 @@ function openForm(){
   document.body.appendChild(m);
   m.querySelector('#fNo').onclick = function(){ m.remove(); };
   m.onclick = function(e){ if(e.target===m) m.remove(); };
+  function autoDivision(){
+    var anio = parseInt(m.querySelector('#fAnio').value, 10);
+    var fija = DIVISION_POR_ESPECIALIDAD[m.querySelector('#fEsp').value];
+    if(fija && anio >= 4) m.querySelector('#fDiv').value = fija;
+  }
+  m.querySelector('#fAnio').onchange = autoDivision;
+  m.querySelector('#fEsp').onchange = autoDivision;
   Array.prototype.forEach.call(m.querySelectorAll('.gpick'), function(b){
     b.onclick = function(){
       if(b.disabled) return;
@@ -554,10 +570,14 @@ function openForm(){
   });
   m.querySelector('#fOk').onclick = function(){
     var nom = m.querySelector('#fNom').value.trim();
-    var curso = m.querySelector('#fCurso').value.trim();
+    var dni = m.querySelector('#fDni').value.replace(/\D/g,'');
+    var anio = m.querySelector('#fAnio').value;
+    var div = m.querySelector('#fDiv').value;
+    var curso = (anio && div) ? (anio + 'º ' + div) : '';
+    var esp = m.querySelector('#fEsp').value;
     var mail = m.querySelector('#fMail').value.trim();
-    if(nom.length<3 || !curso || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){
-      m.querySelector('#fErr').textContent = 'Completá nombre, curso y un mail válido.'; return;
+    if(nom.length<3 || !/^\d{7,9}$/.test(dni) || !curso || !esp || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){
+      m.querySelector('#fErr').textContent = 'Completá nombre, DNI, año, división, especialidad y un mail válido.'; return;
     }
     var grupos = {};
     for(var gi=0; gi<equipoPicks.length; gi++){
@@ -573,9 +593,9 @@ function openForm(){
     var rec = {
       id: 'i'+Date.now()+Math.floor(Math.random()*1000),
       ts: new Date().toISOString(),
-      nombre: nom, curso: curso, email: mail,
+      nombre: nom, curso: curso, dni: dni, email: mail,
       tel: m.querySelector('#fTel').value.trim(),
-      especialidad: m.querySelector('#fEsp').value,
+      especialidad: esp,
       exp: m.querySelector('#fExp').value.trim().slice(0,500),
       prefs: picks.slice(),
       grupos: grupos,
@@ -628,7 +648,7 @@ function renderAdmin(){
   if(!INSC.length){
     html += '<div class="empty">Todavía no se anotó nadie. Compartí el enlace con los cursos.</div>';
   } else {
-    html += '<div class="tbl-wrap"><table><thead><tr><th>Alumno</th><th>Curso</th><th>Competencias elegidas (en orden de preferencia)</th><th>Especialidad</th><th>Contacto</th><th>Estado</th><th></th></tr></thead><tbody>';
+    html += '<div class="tbl-wrap"><table><thead><tr><th>Alumno</th><th>DNI</th><th>Curso</th><th>Competencias elegidas (en orden de preferencia)</th><th>Especialidad</th><th>Contacto</th><th>Estado</th><th></th></tr></thead><tbody>';
     INSC.slice().sort(function(a,b){ return a.ts<b.ts?-1:1; }).forEach(function(r){
       var prefs = (r.prefs||[]).map(function(id,i){
         var c = compById(id);
@@ -637,6 +657,7 @@ function renderAdmin(){
       }).join(' · ');
       prefs = '<div style="min-width:240px">'+prefs+'</div>';
       html += '<tr><td><b>'+esc(r.nombre)+'</b>'+(r.exp?'<div style="color:var(--muted);font-size:12px;margin-top:3px">'+esc(r.exp)+'</div>':'')+'</td>'
+        + '<td style="font-family:var(--mono);font-size:11px">'+esc(r.dni||'')+'</td>'
         + '<td>'+esc(r.curso)+'</td><td>'+prefs+'</td><td>'+esc(ESPECIALIDADES[r.especialidad]||r.especialidad||'')+'</td>'
         + '<td style="font-family:var(--mono);font-size:11px">'+esc(r.email)+(r.tel?'<br>'+esc(r.tel):'')+'</td>'
         + '<td><span class="tag '+(r.estado==='seleccionado'?'sel':r.estado==='suplente'?'sup':'')+'">'+esc(r.estado)+'</span></td>'
@@ -738,10 +759,10 @@ function renderAdmin(){
 }
 
 function exportCsv(){
-  var cols = ['nombre','curso','email','tel','especialidad','cantidad','competencias_en_orden','estado','experiencia','fecha'];
+  var cols = ['nombre','dni','curso','email','tel','especialidad','cantidad','competencias_en_orden','estado','experiencia','fecha'];
   var rows = INSC.map(function(r){
     var p = (r.prefs||[]).map(function(id){ var c=compById(id); return c?c.n:id; });
-    return [r.nombre, r.curso, r.email, r.tel||'', ESPECIALIDADES[r.especialidad]||r.especialidad||'', p.length, p.join(' | '), r.estado||'', (r.exp||'').replace(/\s+/g,' '), r.ts];
+    return [r.nombre, r.dni||'', r.curso, r.email, r.tel||'', ESPECIALIDADES[r.especialidad]||r.especialidad||'', p.length, p.join(' | '), r.estado||'', (r.exp||'').replace(/\s+/g,' '), r.ts];
   });
   var csv = [cols].concat(rows).map(function(row){
     return row.map(function(cell){ return '"'+String(cell==null?'':cell).replace(/"/g,'""')+'"'; }).join(',');
@@ -751,14 +772,14 @@ function exportCsv(){
 
 /* una fila por alumno-competencia: es el formato que sirve para armar cada equipo */
 function exportCsvPorCompetencia(){
-  var cols = ['competencia','categoria','grupo','orden_de_preferencia','alumno','curso','email','tel','especialidad','estado'];
+  var cols = ['competencia','categoria','grupo','orden_de_preferencia','alumno','dni','curso','email','tel','especialidad','estado'];
   var rows = [];
   CFG.comps.forEach(function(c){
     INSC.forEach(function(r){
       var i = (r.prefs||[]).indexOf(c.id);
       if(i < 0) return;
       var g = (r.grupos||[])[i];
-      rows.push([c.n, CATS[c.cat]?CATS[c.cat].n:c.cat, g||'', i+1, r.nombre, r.curso, r.email, r.tel||'', ESPECIALIDADES[r.especialidad]||r.especialidad||'', r.estado||'']);
+      rows.push([c.n, CATS[c.cat]?CATS[c.cat].n:c.cat, g||'', i+1, r.nombre, r.dni||'', r.curso, r.email, r.tel||'', ESPECIALIDADES[r.especialidad]||r.especialidad||'', r.estado||'']);
     });
   });
   var csv = [cols].concat(rows).map(function(row){
